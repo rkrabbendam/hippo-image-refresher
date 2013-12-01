@@ -1,0 +1,159 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId> nl.finalist.ecm.hippo.plugins.jcrrunner.job</groupId>
+	<artifactId>hippo-image-resizer</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<org.slf4j.version>1.5.6</org.slf4j.version>
+		<jcrrunner.version>1.02.06</jcrrunner.version>
+		<javax.jcr.version>2.0</javax.jcr.version>
+		<log4j.version>1.2.14</log4j.version>
+
+		<hippo.packages.version>2.22.07</hippo.packages.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.onehippo.forge.jcrrunner</groupId>
+			<artifactId>jcrrunner</artifactId>
+			<version>${jcrrunner.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.jcr</groupId>
+			<artifactId>jcr</artifactId>
+			<version>${javax.jcr.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.onehippo.cms7</groupId>
+			<artifactId>hippo-package-cms-dependencies</artifactId>
+			<type>pom</type>
+			<version>${hippo.packages.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>${org.slf4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${org.slf4j.version}</version>
+		</dependency>
+		<dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>${log4j.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.sun.jmx</groupId>
+          <artifactId>jmxri</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.sun.jdmk</groupId>
+          <artifactId>jmxtools</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>javax.jms</groupId>
+          <artifactId>jms</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>javax.mail</groupId>
+          <artifactId>mail</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <dependency>
+    	<groupId>javax</groupId>
+    	<artifactId>javaee-api</artifactId>
+    	<version>6.0</version>
+	</dependency>
+	</dependencies>
+
+	<repositories>
+		<repository>
+	  		<id>Java.Net</id>
+	  		<url>http://download.java.net/maven/2/</url>
+	  	</repository>
+		<repository>
+			<id>hippo-maven2-forge</id>
+			<name>Hippo Maven 2 Forge Repositories</name>
+			<url>http://maven.onehippo.com/maven2-forge</url>
+		</repository>
+		<repository>
+			<id>hippo</id>
+			<name>Hippo maven 2 repository.</name>
+			<url>http://maven.onehippo.com/maven2/</url>
+		</repository>
+	</repositories>
+
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.1.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<mainClass>org.onehippo.forge.jcrrunner.JcrRunner</mainClass>
+					<cleanupDaemonThreads>true</cleanupDaemonThreads>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>appassembler-maven-plugin</artifactId>
+				<version>1.1.1</version>
+				<configuration>
+					<extraJvmArguments>-Xmx512m -Xms128m</extraJvmArguments>
+					<assembleDirectory>${project.build.directory}/hippo-image-runner-${project.version}</assembleDirectory>
+					<platforms>
+						<platform>windows</platform>
+						<platform>unix</platform>
+					</platforms>
+					<programs>
+						<program>
+							<mainClass>org.onehippo.forge.jcrrunner.JcrRunner</mainClass>
+							<name>jcr-runner</name>
+						</program>
+					</programs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.5.1</version>
+				<configuration>
+					<target>1.6</target>
+					<source>1.6</source>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>2.1.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
