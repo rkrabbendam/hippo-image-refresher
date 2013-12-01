@@ -18,6 +18,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.ValueFormatException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -33,7 +34,6 @@ public class ImageSetRefresher extends AbstractRunnerPlugin {
    private ScalingGalleryProcessor processor;
    private Map<String, ScalingParameters> configurations = new HashMap<String, ScalingParameters>();
    private Map<String, String> filenamesMap;
-   private long updatesCounter = 0l;
 
    @Override
    public void visit(final Node node) {
@@ -51,14 +51,14 @@ public class ImageSetRefresher extends AbstractRunnerPlugin {
                e);
       }
    }
-   
+
    @Override
    public void init() {
       super.init();
 
       getLogger().info("Running {}", this.getClass().getName());
 
-      final String imagesFolder = "/Users/rob/Desktop/Archief"; //getConfigValue("images.folder");
+      final String imagesFolder = "/Users/rob/Desktop/Archief"; // getConfigValue("images.folder");
       getLogger().info("Images folder: {}", imagesFolder);
 
       filenamesMap = new HashMap<String, String>();
@@ -125,63 +125,68 @@ public class ImageSetRefresher extends AbstractRunnerPlugin {
          ItemExistsException, ReferentialIntegrityException, ConstraintViolationException, InvalidItemStateException,
          VersionException, LockException, NoSuchNodeTypeException, RepositoryException, IOException {
 
-      String originalFileName;
-      
-      try {
-         originalFileName = node.getProperty(HippoGalleryNodeType.IMAGE_SET_FILE_NAME).getString().toLowerCase();
-      } catch(javax.jcr.PathNotFoundException e) {
-         getLogger().error("Node didn't have a {} property, setting it now", HippoGalleryNodeType.IMAGE_SET_FILE_NAME);
-         originalFileName = node.getName().toLowerCase();
-         node.setProperty(HippoGalleryNodeType.IMAGE_SET_FILE_NAME, originalFileName);
-      }
-      
+      String originalFileName = getOrCreateFileName(node);
+
       getLogger().info("Found imageSet node for file {}", originalFileName);
 
-      if (filenamesMap.containsKey(originalFileName))
-      {
+      if (filenamesMap.containsKey(originalFileName)) {
          String path = filenamesMap.get(originalFileName);
          getLogger().info("An image file for this node is found here: {}", path);
 
-         Calendar lastModified = new GregorianCalendar();
-         Node original = getOriginal(node);
+         Node original = getOrCreateImageFormatNode(node, HippoGalleryNodeType.IMAGE_SET_ORIGINAL);
 
          getLogger().info("Refreshing original format");
 
          InputStream is = new FileInputStream(path);
          original.setProperty(JcrConstants.JCR_DATA, is);
-         
+
+         Calendar lastModified = new GregorianCalendar();
          processor.initGalleryResource(original, getData(original), getMimeType(original), originalFileName,
                lastModified);
 
          for (String imageFormat : configurations.keySet()) {
             getLogger().info("Refreshing format {}", imageFormat);
-            Node format = node.getNode(imageFormat);
+            Node format = getOrCreateImageFormatNode(node, imageFormat);
             processor.initGalleryResource(format, getData(original), getMimeType(original), originalFileName,
                   lastModified);
          }
 
          session.save();
-         updatesCounter++;
       } else {
          getLogger().info("No image file found for this node, skipping it");
       }
+   }
+
+   private String getOrCreateFileName(final Node node) throws ValueFormatException,
+         RepositoryException, VersionException, LockException, ConstraintViolationException {
+      String fileName;
+      try {
+         fileName = node.getProperty(HippoGalleryNodeType.IMAGE_SET_FILE_NAME).getString().toLowerCase();
+      } catch (javax.jcr.PathNotFoundException e) {
+         getLogger().error("Node didn't have a {} property, setting it now", HippoGalleryNodeType.IMAGE_SET_FILE_NAME);
+         fileName = node.getName().toLowerCase();
+         node.setProperty(HippoGalleryNodeType.IMAGE_SET_FILE_NAME, fileName);
+      }
+      return fileName;
+   }
+
+   private Node getOrCreateImageFormatNode(Node node, String childNodeName) throws RepositoryException {
+      Node child;
+      try {
+         child = node.getNode(childNodeName);
+      } catch (PathNotFoundException pnfe) {
+         getLogger().info("Image format child node {} not found; creating it now", childNodeName);
+         child = node.addNode(childNodeName, HippoGalleryNodeType.IMAGE);
+         child.setProperty(JcrConstants.JCR_MIMETYPE, "image/jpeg");
+      }
+      return child;
    }
 
    private String getMimeType(Node node) throws PathNotFoundException, RepositoryException {
       return node.getProperty(JcrConstants.JCR_MIMETYPE).getString();
    }
 
-   private Node getOriginal(Node node) throws PathNotFoundException, RepositoryException {
-      return node.getNode(HippoGalleryNodeType.IMAGE_SET_ORIGINAL);
-   }
-
    private InputStream getData(Node node) throws PathNotFoundException, RepositoryException {
       return node.getProperty(JcrConstants.JCR_DATA).getBinary().getStream();
-   }
-
-   @Override
-   public void destroy() {
-      getLogger().info("Updated {} imageSets", updatesCounter);
-      super.destroy();
    }
 }
